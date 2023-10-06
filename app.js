@@ -37,8 +37,9 @@ mongoose.connect('mongodb://127.0.0.1:27017/userDB',{useNewUrlParser:true }).the
 const userSchema = new mongoose.Schema({
     email:String,
     password:String,
-    googleId:String
-});
+    googleId:String,
+    secret:String
+}); 
 
 userSchema.plugin(passportLocalMongoose);
 userSchema.plugin(findOrCreate);
@@ -95,12 +96,57 @@ app.get("/register",function (req,res) {
 })
 
 app.get("/secrets",function (req,res) {
-    if (req.isAuthenticated()) {
-        res.render("secrets");
-      } else {
-        res.redirect('/');
-      }
-    
+   
+User.find({secret: {$ne: null}}).then((result)=>{
+  if(result){
+  
+    res.render("secrets",{secretz:result});
+  }else{
+    res.redirect("/")
+  }
+
+
+  
+}).catch((err)=>{
+  console.log(err);
+})
+
+})
+
+app.get("/submit",function(req,res){
+
+  if(req.isAuthenticated()){
+    res.render("submit")
+  }else{
+    res.redirect("/")
+  }
+})
+
+app.post("/submit",function(req,res){
+
+  const submittedSecret = req.body.secret;
+  const submittedId = req.user.id;
+
+  User.findById(submittedId).then((foundItem)=>{
+    if(foundItem){
+      foundItem.secret=submittedSecret;
+      foundItem.save().then(()=>{
+        
+          res.redirect("/secrets");
+        
+      })
+    }else{
+res.redirect("/")
+    }
+  })
+
+  // User. findOneAndUpdate({_id:submittedId},{$set:{secret:submittedSecret}}).then( function(updated){
+  // console.log("secrets inserted!!!");
+  // }).catch((err)=>console.log(err));
+  
+  // // console.log(req.user.id);
+  
+  // res.redirect("/secrets")
 })
 
 app.get("/auth/google",
